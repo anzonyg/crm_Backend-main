@@ -10,7 +10,7 @@ const app = express();
   .then(db => console.log('DB conected' + db))
   .catch(err => console.error(err)); */
 
-const MONGO_URI = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_PORT_PUBLIC}:${process.env.MONGO_PORT_PUBLIC}/${process.env.MONGO_DB}?authSource=admin`;
+const MONGO_URI = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_PUBLIC_URL}:${process.env.MONGO_PORT_PUBLIC}/${process.env.MONGO_DB}?authSource=admin`;
 
 mongoose.connect(MONGO_URI)
   .then(db => console.log('DB connected'))

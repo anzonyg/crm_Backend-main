@@ -2,12 +2,18 @@ const express = require('express');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
 const cors = require('cors');
-
+require('dotenv').config();
 
 const app = express();
 
-mongoose.connect('mongodb://127.0.0.1:27017/crmDB')
+/* mongoose.connect('mongodb://127.0.0.1:27017/crmDB')
   .then(db => console.log('DB conected' + db))
+  .catch(err => console.error(err)); */
+
+const MONGO_URI = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_PORT_PUBLIC}:${process.env.MONGO_PORT_PUBLIC}/${process.env.MONGO_DB}?authSource=admin`;
+
+mongoose.connect(MONGO_URI)
+  .then(db => console.log('DB connected'))
   .catch(err => console.error(err));
 
 // Settings

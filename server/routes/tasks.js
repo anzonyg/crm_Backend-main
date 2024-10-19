@@ -10,7 +10,7 @@ const Inventario = require('../models/inventario');
 const Proyecto = require('../models/proyecto');
 const Campanas = require('../models/campanas');
 const TicketsSoporte = require('../models/ticketsSoporte');
-const Tarea = require('../models/Tarea');
+const Tarea = require('../models/tarea');
 const Cliente = require('../models/Cliente');
 const GestionDePedidos = require('../models/gestiondepedidos');
 

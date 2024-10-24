@@ -206,7 +206,6 @@ router.delete('/cotizaciones/:id', async (req, res) => {
 router.get('/cotizaciones', async (req, res) => {
     try {
         const cotizaciones = await Cotizacion.find({}, 'nombre telefono empresa correo fechaCreacion totalGeneral estado');
-        console.log(cotizaciones)
         res.status(200).json(cotizaciones);
     } catch (error) {
         res.status(500).json({ message: 'Error al obtener las cotizaciones', error });
@@ -245,6 +244,33 @@ router.patch('/cotizaciones/:id/aprobar', async (req, res) => {
     }
   });
   
+
+// Obtener cotizaciones filtradas
+router.post('/reportecotizacion', async (req, res) => {
+    const { empresa, fechaCreacion, estado, producto } = req.body;
+
+    try {
+        let filtros = {};
+
+        if (empresa) filtros.empresa = { $regex: new RegExp(empresa, 'i') };
+        if (fechaCreacion) filtros.fechaCreacion = { $gte: new Date(fechaCreacion) };
+        if (estado) filtros.estado = estado;
+        if (producto) filtros.items = { $elemMatch: { descripcion: { $regex: new RegExp(producto, 'i') } } };
+
+        // Obtener todas las cotizaciones que coincidan con los filtros
+        const cotizaciones = await Cotizacion.find(filtros);
+        
+        // Devolver todas las cotizaciones con todos los campos
+        res.status(200).json(cotizaciones);
+    } catch (error) {
+        console.error('Error al obtener cotizaciones:', error);
+        res.status(500).json({ message: 'Error al obtener las cotizaciones', error });
+    }
+});
+
+
+
+
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

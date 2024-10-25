@@ -26,20 +26,28 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.json({ limit: '500mb' }));
 app.use(bodyParser.urlencoded({ limit: '500mb', extended: true, parameterLimit: 100000 }));
 
-//app.use(bodyParser.json());
-
 // Router
 app.get('', async (req, res) => {
   console.log(process.env.environment + 2);
-  res.json("Inicio de servidor con exito!");
-
+  res.json("Inicio de servidor con éxito!");
 });
 
 // Router Program
 app.use('/tasks', require('./routes/tasks'));
 
+// **Aquí añades las rutas para servir los archivos estáticos del frontend de React**
+const path = require('path');
+
+// Sirve los archivos estáticos del build de React
+app.use(express.static(path.join(__dirname, 'client/build')));
+
+// Maneja todas las rutas no especificadas para redirigir al frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname + '/client/build/index.html'));
+});
+
 // Server listening
 app.listen(app.get('port'), () => {
   console.log('Server on port', app.get('port'));
   console.log("ENV SYSTEM", process.env.environment)
-})
+});

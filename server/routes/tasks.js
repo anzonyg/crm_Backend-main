@@ -13,6 +13,7 @@ const TicketsSoporte = require('../models/ticketsSoporte');
 const Tarea = require('../models/tarea');
 const Cliente = require('../models/Cliente');
 const GestionDePedidos = require('../models/gestiondepedidos');
+const multer = require('multer'); //
 
 
 
@@ -731,10 +732,32 @@ router.post('/campanas', async (req, res) => {
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Configuración de almacenamiento de Multer para guardar archivos en la carpeta 'uploads'
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');  // Directorio donde se guardarán los archivos
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname));  // Nombre único basado en la fecha
+    }
+});
 
+const upload = multer({ storage: storage });
 
-// *** TAREAS ***
-router.get('/', async (req, res) => {
+// Crear una nueva tarea
+router.post('/tareas', async (req, res) => {
+    try {
+        const nuevaTarea = new Tarea(req.body);
+        await nuevaTarea.save();
+        res.status(201).json(nuevaTarea);
+    } catch (error) {
+        console.error('Error al crear tarea:', error);
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Obtener todas las tareas
+router.get('/tareas', async (req, res) => {
     try {
         const tareas = await Tarea.find();
         res.json(tareas);
@@ -743,7 +766,8 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.get('/:id', async (req, res) => {
+// Obtener una tarea por su ID
+router.get('/tareas/:id', async (req, res) => {
     try {
         const tarea = await Tarea.findById(req.params.id);
         if (!tarea) {
@@ -755,37 +779,53 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-router.post('/tareas', async (req, res) => {
-    const tarea = new Tarea(req.body);
-    try {
-        const nuevaTarea = await tarea.save();
-        res.status(201).json(nuevaTarea);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-});
-
-router.put('/:id', async (req, res) => {
+// Actualizar una tarea
+router.put('/tareas/:id', async (req, res) => {
     try {
         const tareaActualizada = await Tarea.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!tareaActualizada) {
+            return res.status(404).json({ message: 'Tarea no encontrada' });
+        }
         res.json(tareaActualizada);
     } catch (error) {
+        console.error('Error al actualizar tarea:', error);
         res.status(400).json({ message: error.message });
     }
 });
 
-router.delete('/:id', async (req, res) => {
+// Eliminar una tarea
+router.delete('/tareas/:id', async (req, res) => {
     try {
-        const tarea = await Tarea.findByIdAndDelete(req.params.id);
-        if (!tarea) {
+        const tareaEliminada = await Tarea.findByIdAndDelete(req.params.id);
+        if (!tareaEliminada) {
             return res.status(404).json({ message: 'Tarea no encontrada' });
         }
         res.json({ message: 'Tarea eliminada' });
     } catch (error) {
+        console.error('Error al eliminar tarea:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
+// Subir archivo adjunto a una tarea específica
+router.post('/tareas/:id/adjuntar', upload.single('archivo'), async (req, res) => {
+    try {
+        const tarea = await Tarea.findById(req.params.id);
+        if (!tarea) {
+            return res.status(404).send('Tarea no encontrada');
+        }
+
+        // Agregar la ruta del archivo al campo adjuntos
+        tarea.adjuntos.push(req.file.path);
+        await tarea.save();
+
+        res.status(200).json({ message: 'Archivo adjuntado correctamente', tarea });
+    } catch (error) {
+        console.error('Error al adjuntar archivo:', error);
+        res.status(500).json({ message: 'Error al adjuntar archivo', error });
+    }
+});
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // *** CLIENTES ***
 router.get('/clientes', async (req, res) => {
     try {
@@ -839,18 +879,18 @@ router.delete('/clientes/:id', async (req, res) => {
     }
 });
 
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // *** GESTIÓN DE PEDIDOS ***
-
 // Ruta para obtener todos los pedidos
-router.get('/', async (req, res) => {
+router.post('/gestiondepedidos', async (req, res) => {
     try {
-        const pedidos = await GestionDePedidos.find();
-        res.json(pedidos);
+        const nuevoPedido = new GestionDePedidos(req.body);
+        const pedidoGuardado = await nuevoPedido.save();
+        res.status(201).json(pedidoGuardado);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(400).json({ mensaje: 'Error al crear el pedido', error: error.message });
     }
 });
-
 // Ruta para crear un nuevo pedido
 router.post('/', async (req, res) => {
     const { cliente, metodoEntrega, direccionEntrega, fechaEntrega, estado, prioridad, productos } = req.body;
@@ -910,7 +950,106 @@ router.delete('/:id', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+//--------------------------------------------------------------------------------------------
+// Crear un nuevo inventario
+router.post('/', async (req, res) => {
+    try {
+        const nuevoInventario = new Inventario(req.body);
+        await nuevoInventario.save();
+        res.status(201).json({ message: 'Inventario creado con éxito', data: nuevoInventario });
+    } catch (error) {
+        console.error('Error al crear inventario:', error);
+        res.status(500).json({ message: 'Error al crear el inventario', error: error.message });
+    }
+});
 
+// Obtener un inventario específico por ID
+router.get('/:id', async (req, res) => {
+    try {
+        const inventario = await Inventario.findById(req.params.id);
+        if (!inventario) {
+            return res.status(404).json({ message: 'Inventario no encontrado' });
+        }
+        res.status(200).json(inventario);
+    } catch (error) {
+        console.error('Error al obtener el inventario:', error);
+        res.status(500).json({ message: 'Error al obtener el inventario', error: error.message });
+    }
+});
 
+// Editar un inventario existente
+router.put('/:id', async (req, res) => {
+    try {
+        const inventarioActualizado = await Inventario.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!inventarioActualizado) {
+            return res.status(404).json({ message: 'Inventario no encontrado' });
+        }
+        res.status(200).json({ message: 'Inventario actualizado con éxito', data: inventarioActualizado });
+    } catch (error) {
+        console.error('Error al actualizar el inventario:', error);
+        res.status(500).json({ message: 'Error al actualizar el inventario', error: error.message });
+    }
+});
+
+// Eliminar un inventario por ID
+router.delete('/:id', async (req, res) => {
+    try {
+        const inventarioEliminado = await Inventario.findByIdAndDelete(req.params.id);
+        if (!inventarioEliminado) {
+            return res.status(404).json({ message: 'Inventario no encontrado' });
+        }
+        res.status(200).json({ message: 'Inventario eliminado con éxito' });
+    } catch (error) {
+        console.error('Error al eliminar el inventario:', error);
+        res.status(500).json({ message: 'Error al eliminar el inventario', error: error.message });
+    }
+});
+
+// Obtener lista de todos los inventarios
+router.get('/', async (req, res) => {
+    try {
+        const inventarios = await Inventario.find();
+        res.status(200).json(inventarios);
+    } catch (error) {
+        console.error('Error al obtener los inventarios:', error);
+        res.status(500).json({ message: 'Error al obtener los inventarios', error: error.message });
+    }
+});
+//-------------------------------------------------------------------------------------------------------------
+// Obtener lista de todas las cotizaciones aprobadas
+router.get('/', async (req, res) => {
+    try {
+        const cotizacionesAprobadas = await Cotizacion.find({ estado: 'aprobada' });
+        res.status(200).json(cotizacionesAprobadas);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener las cotizaciones aprobadas', error });
+    }
+});
+
+// Obtener una cotización específica aprobada por ID
+router.get('/:id', async (req, res) => {
+    try {
+        const cotizacion = await Cotizacion.findOne({ _id: req.params.id, estado: 'aprobada' });
+        if (!cotizacion) {
+            return res.status(404).json({ message: 'Cotización aprobada no encontrada' });
+        }
+        res.status(200).json(cotizacion);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener la Cotización aprobada', error });
+    }
+});
+
+// Eliminar una cotización aprobada por ID
+router.delete('/:id', async (req, res) => {
+    try {
+        const cotizacionEliminada = await Cotizacion.findOneAndDelete({ _id: req.params.id, estado: 'aprobada' });
+        if (!cotizacionEliminada) {
+            return res.status(404).json({ message: 'Cotización aprobada no encontrada' });
+        }
+        res.status(200).json({ message: 'Cotización aprobada eliminada con éxito' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al eliminar la cotización aprobada', error });
+    }
+});
 
 module.exports = router;

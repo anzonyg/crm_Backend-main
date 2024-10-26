@@ -432,6 +432,32 @@ router.get('/inventarios', async (req, res) => {
         res.status(500).json({ message: 'Error al crear la Cotización', error });
     }
   });
+
+  // Obtener un seguimiento de contrato específico por ID
+router.get('/followupcontracts/:id', async (req, res) => {
+    try {
+        const followUpContract = await FollowUpContracts.findById(req.params.id);
+        if (!followUpContract) {
+            return res.status(404).json({ message: 'Seguimiento no encontrada' });
+        }
+        res.status(200).json(followUpContract);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener el seguimiento', error });
+    }
+});
+
+// Editar un seguimiento de contrato existente
+router.put('/followupcontracts/:id', async (req, res) => {
+    try {
+        const followUpContractActualizado = await FollowUpContracts.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!followUpContractActualizado) {
+            return res.status(404).json({ message: 'Cotización no encontrada' });
+        }
+        res.status(200).json({ message: 'Seguimiento actualizada con éxito', data: followUpContractActualizado });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al actualizar el seguimiento', error });
+    }
+});
   
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -440,131 +466,268 @@ router.get('/inventarios', async (req, res) => {
 router.post('/campanas', async (req, res) => {
     console.log("Crear Campaña");
     try {
-        const nuevaCampanas= new Campanas(req.body);
-        await nuevaCampanas.save();
-        res.status(201).json({ message: 'Campaña creada con éxito', data: nuevaCampanas});
+      const nuevaCampanas = new Campanas(req.body);
+      await nuevaCampanas.save();
+      res.status(201).json({ message: 'Campaña creada con éxito', data: nuevaCampanas });
     } catch (error) {
-        res.status(500).json({ message: 'Error al crear la Campaña', error });
+      res.status(500).json({ message: 'Error al crear la Campaña', error });
     }
   });
   
   // Obtener una campaña específica por ID
   router.get('/campanas/:id', async (req, res) => {
-      try {
-          const campanas= await Campanas.findById(req.params.id);
-          if (!campanas) {
-              return res.status(404).json({ message: 'Campaña no encontrada' });
-          }
-          res.status(200).json(campanas);
-      } catch (error) {
-          res.status(500).json({ message: 'Error al obtener la Campaña', error });
+    try {
+      const campanas = await Campanas.findById(req.params.id);
+      if (!campanas) {
+        return res.status(404).json({ message: 'Campaña no encontrada' });
       }
+      res.status(200).json(campanas);
+    } catch (error) {
+      res.status(500).json({ message: 'Error al obtener la Campaña', error });
+    }
   });
   
   // Editar una campaña existente
   router.put('/campanas/:id', async (req, res) => {
     console.log("Editar Campaña");
     try {
-        const campanaActualizada = await Campanas.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!campanaActualizada) {
-            return res.status(404).json({ message: 'Campaña no encontrada' });
-        }
-        res.status(200).json({ message: 'Campaña actualizada con éxito', data: campanaActualizada });
+      const campanaActualizada = await Campanas.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      if (!campanaActualizada) {
+        return res.status(404).json({ message: 'Campaña no encontrada' });
+      }
+      res.status(200).json({ message: 'Campaña actualizada con éxito', data: campanaActualizada });
     } catch (error) {
-        res.status(500).json({ message: 'Error al actualizar la Campaña', error });
+      res.status(500).json({ message: 'Error al actualizar la Campaña', error });
+    }
+  });
+  
+  
+  // Obtener lista de todas las campañas
+  router.get('/campanas-dashboard', async (req, res) => {
+    try {
+      const campanas = await Campanas.find();
+  
+      const campanasStatus = {}
+      for (let campana of campanas) {
+        if (!campanasStatus[campana.estado]) {
+          campanasStatus[campana.estado] = []
+        }
+        campanasStatus[campana.estado].push(campana)
+      }
+  
+      const campanasType = {}
+      for (let campana of campanas) {
+        if (!campanasType[campana.tipo]) {
+          campanasType[campana.tipo] = []
+        }
+        campanasType[campana.tipo].push(campana)
+      }
+  
+      const response = {
+        estado: campanasStatus,
+        tipo: campanasType
+      }
+  
+      res.status(200).json(response);
+    } catch (error) {
+      res.status(500).json({ message: 'Error al obtener las campañas', error });
+    }
+  });
+  
+  // Obtener campa;as para el reporte
+  router.get('/campanas-reporte', async (req, res) => {
+    console.log("req", req.query);
+    try {
+  
+      let params = {}
+      if (!!req.query.estado) {
+        params = {
+          ...params,
+          estado: req.query.estado
+        }
+      }
+      if (!!req.query.tipo) {
+        params = {
+          ...params,
+          tipo: req.query.tipo
+        }
+      }
+      if (!!req.query.publicoObjetivo) {
+        params = {
+          ...params,
+          publicoObjetivo: req.query.publicoObjetivo
+        }
+      }
+      if (!!req.query.fechaCreacion) {
+        params = {
+          ...params,
+          fechaCreacion: new Date(req.query.fechaCreacion)
+        }
+      }
+  
+      const campanas = await Campanas.find(params);
+      res.status(200).json(campanas);
+    } catch (error) {
+      console.log('error', error)
+      res.status(500).json({ message: 'Error al obtener las campañas', error });
     }
   });
   
   // Obtener lista de todas las campañas
   router.get('/campanas', async (req, res) => {
-    console.log("nada");
     try {
-      const campanas = await Campanas.find(); 
+      const campanas = await Campanas.find();
       res.status(200).json(campanas);
     } catch (error) {
-        res.status(500).json({ message: 'Error al obtener las campañas', error });
+      res.status(500).json({ message: 'Error al obtener las campañas', error });
     }
   });
-module.exports = router;
-
+  
+  
   // Eliminar una campaña existente
   router.delete('/campanas/:id', async (req, res) => {
     console.log("Eliminar Campaña");
     try {
-        const campanaEliminada = await Campanas.findByIdAndDelete(req.params.id);
-        if (!campanaEliminada) {
-            return res.status(404).json({ message: 'Campaña no eliminada' });
-        }
-        res.status(200).json({ message: 'Campaña eliminada', data: campanaEliminada });
+      const campanaEliminada = await Campanas.findByIdAndDelete(req.params.id);
+      if (!campanaEliminada) {
+        return res.status(404).json({ message: 'Campaña no eliminada' });
+      }
+      res.status(200).json({ message: 'Campaña eliminada', data: campanaEliminada });
     } catch (error) {
-        res.status(500).json({ message: 'Error al eliminar la Campaña', error });
+      res.status(500).json({ message: 'Error al eliminar la Campaña', error });
     }
   });
-
+  
   // Crear un nuevo ticket de soporte
   router.post('/ticketsSoporte', async (req, res) => {
     console.log("Crear Ticket de Soporte");
     try {
-        const nuevoTicket = new TicketsSoporte(req.body);
-        await nuevoTicket.save();
-        res.status(201).json({ message: 'Ticket de soporte creado con éxito', data: nuevoTicket });
+      const nuevoTicket = new TicketsSoporte(req.body);
+      await nuevoTicket.save();
+      res.status(201).json({ message: 'Ticket de soporte creado con éxito', data: nuevoTicket });
     } catch (error) {
-        res.status(500).json({ message: 'Error al crear el Ticket de Soporte', error });
+      res.status(500).json({ message: 'Error al crear el Ticket de Soporte', error });
     }
-});
-
-
-// Obtener un ticket específico por ID
-router.get('/ticketsSoporte/:id', async (req, res) => {
+  });
+  
+  // Obtener lista de todas las campañas
+  router.get('/tickets-dashboard', async (req, res) => {
     try {
-        const ticket = await TicketsSoporte.findById(req.params.id);
-        if (!ticket) {
-            return res.status(404).json({ message: 'Ticket no encontrado' });
+      const tickets = await TicketsSoporte.find();
+  
+      const ticketsStatus = {}
+      for (let ticket of tickets) {
+        if (!ticketsStatus[ticket.estado]) {
+          ticketsStatus[ticket.estado] = []
         }
-        res.status(200).json(ticket);
+        ticketsStatus[ticket.estado].push(ticket)
+      }
+  
+      const ticketsPrioridad = {}
+      for (let ticket of tickets) {
+        if (!ticketsPrioridad[ticket.prioridad]) {
+          ticketsPrioridad[ticket.prioridad] = []
+        }
+        ticketsPrioridad[ticket.prioridad].push(ticket)
+      }
+  
+      const response = {
+        estado: ticketsStatus,
+        prioridad: ticketsPrioridad
+      }
+  
+      res.status(200).json(response);
     } catch (error) {
-        res.status(500).json({ message: 'Error al obtener el Ticket de Soporte', error });
+      res.status(500).json({ message: 'Error al obtener las campañas', error });
     }
-});
-
-// Editar un ticket existente
-router.put('/ticketsSoporte/:id', async (req, res) => {
+  });
+  
+  
+  // Obtener un ticket específico por ID
+  router.get('/ticketsSoporte/:id', async (req, res) => {
+    try {
+      const ticket = await TicketsSoporte.findById(req.params.id);
+      if (!ticket) {
+        return res.status(404).json({ message: 'Ticket no encontrado' });
+      }
+      res.status(200).json(ticket);
+    } catch (error) {
+      res.status(500).json({ message: 'Error al obtener el Ticket de Soporte', error });
+    }
+  });
+  
+  // Editar un ticket existente
+  router.put('/ticketsSoporte/:id', async (req, res) => {
     console.log("Editar Ticket de Soporte");
     try {
-        const ticketActualizado = await TicketsSoporte.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!ticketActualizado) {
-            return res.status(404).json({ message: 'Ticket no encontrado' });
-        }
-        res.status(200).json({ message: 'Ticket de soporte actualizado con éxito', data: ticketActualizado });
+      const ticketActualizado = await TicketsSoporte.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      if (!ticketActualizado) {
+        return res.status(404).json({ message: 'Ticket no encontrado' });
+      }
+      res.status(200).json({ message: 'Ticket de soporte actualizado con éxito', data: ticketActualizado });
     } catch (error) {
-        res.status(500).json({ message: 'Error al actualizar el Ticket de Soporte', error });
+      res.status(500).json({ message: 'Error al actualizar el Ticket de Soporte', error });
     }
-});
-
-// Obtener lista de todos los tickets de soporte
-router.get('/ticketsSoporte', async (req, res) => {
+  });
+  
+  // Obtener lista de todos los tickets de soporte
+  router.get('/ticketsSoporte', async (req, res) => {
     try {
-        const tickets = await TicketsSoporte.find();  // Consulta a la base de datos
-        res.status(200).json(tickets);
+      const tickets = await TicketsSoporte.find();  // Consulta a la base de datos
+      res.status(200).json(tickets);
     } catch (error) {
-        console.error("Error al obtener los tickets de soporte:", error);
-        res.status(500).json({ message: 'Error al obtener los tickets de soporte', error });
+      console.error("Error al obtener los tickets de soporte:", error);
+      res.status(500).json({ message: 'Error al obtener los tickets de soporte', error });
     }
-});
-
-// Eliminar un ticket existente
-router.delete('/ticketsSoporte/:id', async (req, res) => {
+  });
+  
+  // Eliminar un ticket existente
+  router.delete('/ticketsSoporte/:id', async (req, res) => {
     try {
-        const ticketEliminado = await TicketsSoporte.findByIdAndDelete(req.params.id);
-        if (!ticketEliminado) {
-            return res.status(404).json({ message: 'Ticket no encontrado' });
-        }
-        res.status(200).json({ message: 'Ticket de soporte eliminado', data: ticketEliminado });
+      const ticketEliminado = await TicketsSoporte.findByIdAndDelete(req.params.id);
+      if (!ticketEliminado) {
+        return res.status(404).json({ message: 'Ticket no encontrado' });
+      }
+      res.status(200).json({ message: 'Ticket de soporte eliminado', data: ticketEliminado });
     } catch (error) {
-        console.error('Error al eliminar el ticket de soporte:', error);
-        res.status(500).json({ message: 'Error al eliminar el ticket de soporte', error });
+      console.error('Error al eliminar el ticket de soporte:', error);
+      res.status(500).json({ message: 'Error al eliminar el ticket de soporte', error });
     }
-});
+  });
+  
+  // Obtener tickets para el reporte
+  router.get('/tickets-reporte', async (req, res) => {
+    console.log("req", req.query);
+    try {
+  
+      let params = {}
+      if (!!req.query.correo) {
+        params = {
+          ...params,
+          correo: req.query.correo
+        }
+      }
+      if (!!req.query.estado) {
+        params = {
+          ...params,
+          estado: req.query.estado
+        }
+      }
+      if (!!req.query.prioridad) {
+        params = {
+          ...params,
+          prioridad: req.query.prioridad
+        }
+      }
+  
+      const tickets = await TicketsSoporte.find(params);
+      res.status(200).json(tickets);
+    } catch (error) {
+      console.log('error', error)
+      res.status(500).json({ message: 'Error al obtener las campañas', error });
+    }
+  });
+  
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

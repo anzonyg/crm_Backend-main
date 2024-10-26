@@ -881,18 +881,9 @@ router.delete('/clientes/:id', async (req, res) => {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // *** GESTIÓN DE PEDIDOS ***
-// Ruta para obtener todos los pedidos
-router.post('/gestiondepedidos', async (req, res) => {
-    try {
-        const nuevoPedido = new GestionDePedidos(req.body);
-        const pedidoGuardado = await nuevoPedido.save();
-        res.status(201).json(pedidoGuardado);
-    } catch (error) {
-        res.status(400).json({ mensaje: 'Error al crear el pedido', error: error.message });
-    }
-});
+
 // Ruta para crear un nuevo pedido
-router.post('/', async (req, res) => {
+router.post('/gestiondepedidos', async (req, res) => {
     const { cliente, metodoEntrega, direccionEntrega, fechaEntrega, estado, prioridad, productos } = req.body;
 
     // Validar que los campos requeridos estén presentes
@@ -908,126 +899,77 @@ router.post('/', async (req, res) => {
             ...req.body,
             total: totalPedido // Aseguramos que el total del pedido se guarde correctamente
         });
-        await nuevoPedido.save();
-        res.status(201).json(nuevoPedido);
+        const pedidoGuardado = await nuevoPedido.save();
+        res.status(201).json(pedidoGuardado);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(400).json({ message: 'Error al crear el pedido', error: error.message });
+    }
+});
+
+// Ruta para obtener todos los pedidos
+router.get('/gestiondepedidos', async (req, res) => {
+    try {
+        const pedidos = await GestionDePedidos.find();
+        res.status(200).json(pedidos);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener los pedidos', error: error.message });
     }
 });
 
 // Ruta para obtener un pedido por su ID
-router.get('/:id', async (req, res) => {
+router.get('/gestiondepedidos/:id', async (req, res) => {
     try {
         const pedido = await GestionDePedidos.findById(req.params.id);
         if (!pedido) {
             return res.status(404).json({ message: 'Pedido no encontrado' });
         }
-        res.json(pedido);
+        res.status(200).json(pedido);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: 'Error al obtener el pedido', error: error.message });
     }
 });
 
-// Ruta para actualizar un pedido
-router.put('/:id', async (req, res) => {
+// Ruta para actualizar un pedido existente
+router.put('/gestiondepedidos/:id', async (req, res) => {
     try {
         const pedidoActualizado = await GestionDePedidos.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json(pedidoActualizado);
+        if (!pedidoActualizado) {
+            return res.status(404).json({ message: 'Pedido no encontrado' });
+        }
+        res.status(200).json(pedidoActualizado);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(400).json({ message: 'Error al actualizar el pedido', error: error.message });
     }
 });
 
 // Ruta para eliminar un pedido
-router.delete('/:id', async (req, res) => {
+router.delete('/gestiondepedidos/:id', async (req, res) => {
     try {
-        const pedido = await GestionDePedidos.findByIdAndDelete(req.params.id);
-        if (!pedido) {
+        const pedidoEliminado = await GestionDePedidos.findByIdAndDelete(req.params.id);
+        if (!pedidoEliminado) {
             return res.status(404).json({ message: 'Pedido no encontrado' });
         }
-        res.json({ message: 'Pedido eliminado' });
+        res.status(200).json({ message: 'Pedido eliminado con éxito' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-//--------------------------------------------------------------------------------------------
-// Crear un nuevo inventario
-router.post('/', async (req, res) => {
-    try {
-        const nuevoInventario = new Inventario(req.body);
-        await nuevoInventario.save();
-        res.status(201).json({ message: 'Inventario creado con éxito', data: nuevoInventario });
-    } catch (error) {
-        console.error('Error al crear inventario:', error);
-        res.status(500).json({ message: 'Error al crear el inventario', error: error.message });
+        res.status(500).json({ message: 'Error al eliminar el pedido', error: error.message });
     }
 });
 
-// Obtener un inventario específico por ID
-router.get('/:id', async (req, res) => {
-    try {
-        const inventario = await Inventario.findById(req.params.id);
-        if (!inventario) {
-            return res.status(404).json({ message: 'Inventario no encontrado' });
-        }
-        res.status(200).json(inventario);
-    } catch (error) {
-        console.error('Error al obtener el inventario:', error);
-        res.status(500).json({ message: 'Error al obtener el inventario', error: error.message });
-    }
-});
 
-// Editar un inventario existente
-router.put('/:id', async (req, res) => {
-    try {
-        const inventarioActualizado = await Inventario.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!inventarioActualizado) {
-            return res.status(404).json({ message: 'Inventario no encontrado' });
-        }
-        res.status(200).json({ message: 'Inventario actualizado con éxito', data: inventarioActualizado });
-    } catch (error) {
-        console.error('Error al actualizar el inventario:', error);
-        res.status(500).json({ message: 'Error al actualizar el inventario', error: error.message });
-    }
-});
-
-// Eliminar un inventario por ID
-router.delete('/:id', async (req, res) => {
-    try {
-        const inventarioEliminado = await Inventario.findByIdAndDelete(req.params.id);
-        if (!inventarioEliminado) {
-            return res.status(404).json({ message: 'Inventario no encontrado' });
-        }
-        res.status(200).json({ message: 'Inventario eliminado con éxito' });
-    } catch (error) {
-        console.error('Error al eliminar el inventario:', error);
-        res.status(500).json({ message: 'Error al eliminar el inventario', error: error.message });
-    }
-});
-
-// Obtener lista de todos los inventarios
-router.get('/', async (req, res) => {
-    try {
-        const inventarios = await Inventario.find();
-        res.status(200).json(inventarios);
-    } catch (error) {
-        console.error('Error al obtener los inventarios:', error);
-        res.status(500).json({ message: 'Error al obtener los inventarios', error: error.message });
-    }
-});
 //-------------------------------------------------------------------------------------------------------------
 // Obtener lista de todas las cotizaciones aprobadas
-router.get('/', async (req, res) => {
+router.get('/cotizacionesAprobadas', async (req, res) => {
     try {
         const cotizacionesAprobadas = await Cotizacion.find({ estado: 'aprobada' });
         res.status(200).json(cotizacionesAprobadas);
     } catch (error) {
-        res.status(500).json({ message: 'Error al obtener las cotizaciones aprobadas', error });
+        console.error('Error al obtener las cotizaciones aprobadas:', error);
+        res.status(500).json({ message: 'Error al obtener las cotizaciones aprobadas', error: error.message });
     }
 });
 
-// Obtener una cotización específica aprobada por ID
-router.get('/:id', async (req, res) => {
+// Obtener una cotización aprobada específica por ID
+router.get('/cotizacionesAprobadas/:id', async (req, res) => {
     try {
         const cotizacion = await Cotizacion.findOne({ _id: req.params.id, estado: 'aprobada' });
         if (!cotizacion) {
@@ -1035,12 +977,13 @@ router.get('/:id', async (req, res) => {
         }
         res.status(200).json(cotizacion);
     } catch (error) {
-        res.status(500).json({ message: 'Error al obtener la Cotización aprobada', error });
+        console.error('Error al obtener la cotización aprobada por ID:', error);
+        res.status(500).json({ message: 'Error al obtener la cotización aprobada', error: error.message });
     }
 });
 
 // Eliminar una cotización aprobada por ID
-router.delete('/:id', async (req, res) => {
+router.delete('/cotizacionesAprobadas/:id', async (req, res) => {
     try {
         const cotizacionEliminada = await Cotizacion.findOneAndDelete({ _id: req.params.id, estado: 'aprobada' });
         if (!cotizacionEliminada) {
@@ -1048,7 +991,8 @@ router.delete('/:id', async (req, res) => {
         }
         res.status(200).json({ message: 'Cotización aprobada eliminada con éxito' });
     } catch (error) {
-        res.status(500).json({ message: 'Error al eliminar la cotización aprobada', error });
+        console.error('Error al eliminar la cotización aprobada:', error);
+        res.status(500).json({ message: 'Error al eliminar la cotización aprobada', error: error.message });
     }
 });
 
